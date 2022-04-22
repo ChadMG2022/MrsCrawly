@@ -1,31 +1,35 @@
 # See https://stackoverflow.com/questions/51657000/how-to-convert-an-html-table-into-a-python-dictionary
 
+import csv
 import requests
 from html.parser import HTMLParser
+
 
 class MkwrsParser(HTMLParser):
 
     def __init__(self):
         super().__init__()
-        self.tags = []
-
-    def handle_starttag(self, tag, attrs):
-        self.tags.append(tag)
+        self.table = [[]]
+        self.data = None
+        self.capture = False
 
     def handle_endtag(self, tag):
-        self.tags.pop()
+        if self.capture:
+            if tag == 'th' or tag == 'td':
+                self.table[-1].append(self.data)
+            if tag == 'tr':
+                self.table.append([])
 
     def handle_data(self, data):
-        if data and data.strip():
-            print(self.tags)
-            print(data)
-        # if data == 'Recent World Records':
-        #     exit(0)
+        self.data = data.strip()
+        if 'Recent World Records' == self.data:
+            self.capture = True
 
 
 response = requests.get('https://mkwrs.com')
-# print(response.text)
 
 parser = MkwrsParser()
 parser.feed(response.text)
-print(parser.tags)
+
+with open('output/mario-cart.csv', 'w') as csvfile:
+    csv.writer(csvfile).writerows(parser.table)
